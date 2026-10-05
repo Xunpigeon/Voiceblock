@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+[[mods]]
+modId="voiceblock"
+version="1.1.0"
+displayName="语音方块 VoiceBlock"
+description='''说出方块名字，瞬间拿到方块。完全离线的中文语音识别模组。'''
+authors="Xunpigeon"
+[[dependencies.voiceblock]]
+    modId="forge"
+    type="required"
+    versionRange="[47,)"
+    ordering="NONE"
+    side="CLIENT"
+[[dependencies.voiceblock]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="CLIENT"

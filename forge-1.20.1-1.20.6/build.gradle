@@ -1,0 +1,51 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '6.0.24'
+}
+
+version = '1.1.0'
+group = 'com.voiceblock'
+
+base { archivesName = 'voiceblock-forge-1.20.1' }
+
+repositories { mavenCentral() }
+
+dependencies {
+    minecraft "net.minecraftforge:forge:1.20.1-47.3.0"
+    implementation "com.alphacephei:vosk:0.3.45"
+    jarJar(group: "com.alphacephei", name: "vosk", version: "[0.3.45,0.4.0)")
+    implementation "com.belerweb:pinyin4j:2.5.1"
+    jarJar(group: "com.belerweb", name: "pinyin4j", version: "[2.5.1,2.6.0)")
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                voiceblock { source sourceSets.main }
+            }
+        }
+    }
+}
+
+tasks.named('jarJar') { enabled = true }
+
+sourceSets {
+    main {
+        java {
+            srcDir '../common/java'
+            srcDir '../forge/java'
+        }
+        resources {
+            srcDir '../common/resources'
+        }
+    }
+}

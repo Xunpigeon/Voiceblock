@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '1.0.21'
+}
+
+version = '1.1.0'
+group = 'com.voiceblock'
+
+base { archivesName = 'voiceblock-neoforge-1.21' }
+
+repositories { mavenCentral() }
+
+dependencies {
+    implementation "com.alphacephei:vosk:0.3.45"
+    jarJar "com.alphacephei:vosk:0.3.45"
+    implementation "com.belerweb:pinyin4j:2.5.1"
+    jarJar "com.belerweb:pinyin4j:2.5.1"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+neoForge {
+    version = '21.0.143'
+    runs { client { client() } }
+    mods { voiceblock { sourceSet sourceSets.main } }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir '../common/java'
+            srcDir '../neoforge/java'
+        }
+        resources {
+            srcDir '../common/resources'
+        }
+    }
+}

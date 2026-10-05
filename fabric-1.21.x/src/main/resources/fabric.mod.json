@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "voiceblock",
+  "version": "1.1.0",
+  "name": "语音方块 VoiceBlock",
+  "description": "说出方块名字，瞬间拿到方块。完全离线的中文语音识别模组。",
+  "authors": ["Xunpigeon"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": { "client": ["com.voiceblock.VoiceBlockMod"] },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": ">=1.21 <1.22",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
