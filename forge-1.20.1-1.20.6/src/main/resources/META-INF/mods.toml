@@ -3,7 +3,7 @@ loaderVersion="[47,)"
 license="MIT"
 [[mods]]
 modId="voiceblock"
-version="1.1.0"
+version="1.2.0"
 displayName="语音方块 VoiceBlock"
 description='''说出方块名字，瞬间拿到方块。完全离线的中文语音识别模组。'''
 authors="Xunpigeon"

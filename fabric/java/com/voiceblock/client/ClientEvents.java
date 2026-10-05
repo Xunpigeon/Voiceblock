@@ -6,6 +6,7 @@ import com.voiceblock.match.MatchResult;
 import com.voiceblock.voice.MicrophoneRecorder;
 import com.voiceblock.voice.VoskRecognizer;
 import com.voiceblock.util.InventoryUtil;
+import com.voiceblock.util.SoundUtil;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -54,6 +55,7 @@ public class ClientEvents {
         try {
             recorder.start();
             mc.player.displayClientMessage(Component.literal("正在聆听..."), true);
+            SoundUtil.playSound(mc.player, "UI_BUTTON_CLICK", 0.4f, 1.5f);
         } catch (Exception e) {
             VoiceBlockMod.LOGGER.error("Failed to start recording", e);
             mc.player.displayClientMessage(Component.literal("录音启动失败"), true);
@@ -68,6 +70,7 @@ public class ClientEvents {
 
         processing = true;
         byte[] audioData = recorder.stop();
+        SoundUtil.playSound(mc.player, "EXPERIENCE_ORB_PICKUP", 0.4f, 1.0f);
 
         Thread recognizeThread = new Thread(() -> {
             try {
@@ -86,8 +89,17 @@ public class ClientEvents {
                 mc.execute(() -> {
                     if (result != null) {
                         VoiceHudOverlay.showRecognition(text, "匹配: " + result.displayName());
-                        InventoryUtil.replaceSelectedItem(mc.player, result.itemId(), result.displayName());
-                        mc.player.displayClientMessage(Component.literal("已获取: " + result.displayName()), true);
+                        if (mc.player.isCreative()) {
+                            InventoryUtil.replaceSelectedItem(mc.player, result.itemId(), result.displayName());
+                            mc.player.displayClientMessage(Component.literal("已获取: " + result.displayName()), true);
+                        } else {
+                            boolean swapped = InventoryUtil.swapWithInventory(mc.player, result.itemId());
+                            if (swapped) {
+                                mc.player.displayClientMessage(Component.literal("已切换到: " + result.displayName()), true);
+                            } else {
+                                mc.player.displayClientMessage(Component.literal("背包中没有: " + result.displayName()), true);
+                            }
+                        }
                     } else {
                         VoiceHudOverlay.showRecognition(text, "未匹配到方块");
                         mc.player.displayClientMessage(Component.literal("未匹配到方块: " + text), true);
