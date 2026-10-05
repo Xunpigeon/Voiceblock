@@ -5,8 +5,10 @@
 ## 功能特性
 
 - 🎙️ **离线语音识别**：内置 Vosk 中文模型，断网也能用
-- 🧱 **1604 个方块**：支持原版 + Create + Aeronautics
+- 🧱 **2195 个方块**：支持原版(1411) + Create(643) + Simulated(95) + Aeronautics(43) + Offroad(3)
 - 🔤 **拼音模糊匹配**：说"原石"、"yuanshi"都能匹配
+- 🎮 **创造 & 生存双模式**：创造直接生成物品，生存与背包交换
+- 🔔 **按键音效提示**：按下/松开触发键有音效反馈
 - 🎯 **多加载器支持**：Fabric / Forge / NeoForge
 - 🔧 **外置模型覆盖**：可自行替换为高精度大模型
 
@@ -14,10 +16,19 @@
 
 1. 将对应版本的 jar 放入 `mods/` 文件夹
 2. 首次启动游戏，模型会自动解压到 `config/voiceblock/vosk-model/`
-3. 进入游戏，按住 **鼠标按键5** 说话，松开后自动识别并切换方块
+3. 进入游戏，按住 **鼠标按键5** 说话（按下会有"叮"的提示音），松开后自动识别（松开有经验球音效）并切换方块
 4. HUD 会显示识别结果和匹配到的方块
 
 > 默认按键为鼠标按键5，可在控制设置中修改。
+
+### 创造模式 vs 生存模式
+
+| 模式 | 行为 |
+|------|------|
+| **创造模式** | 直接在当前快捷栏格子生成 64 个目标方块 |
+| **生存模式** | 在背包中查找目标方块，将其与当前选中的快捷栏格子交换位置。若背包中没有该方块，会提示"背包中没有: XXX" |
+
+> 生存模式使用服务器原生的容器交换机制（ClickType.SWAP），无幽灵方块问题。
 
 ## 下载
 
@@ -25,10 +36,10 @@
 
 | 产物 | 适用加载器 | MC 版本 | Java |
 |------|-----------|---------|------|
-| voiceblock-fabric-1.20.1-1.1.0.jar | Fabric | 1.20.1 ~ 1.20.4 | 17 |
-| voiceblock-fabric-1.21-1.1.0.jar | Fabric | 1.21.x | 21 |
-| voiceblock-neoforge-1.21-1.1.0.jar | NeoForge | 1.21 | 21 |
-| voiceblock-forge-1.20.1-1.1.0-all.jar | Forge | 1.20.1 ~ 1.20.6 | 17 |
+| voiceblock-fabric-1.20.1-1.2.0.jar | Fabric | 1.20.1 ~ 1.20.4 | 17 |
+| voiceblock-fabric-1.21-1.2.0.jar | Fabric | 1.21.x | 21 |
+| voiceblock-neoforge-1.21-1.2.0.jar | NeoForge | 1.21 | 21 |
+| voiceblock-forge-1.20.1-1.2.0-all.jar | Forge | 1.20.1 ~ 1.20.6 | 17 |
 
 > Forge 用户请使用 `-all.jar`（已内嵌 vosk + pinyin4j 依赖）。
 
@@ -44,7 +55,14 @@
 ## 构建
 
 ```bash
+# 编译全部 4 个版本
 ./gradlew build
+
+# 或只编译指定版本
+./gradlew :fabric-1.21:build
+./gradlew :neoforge-1.21:build
+./gradlew :forge-1.20.1:build
+./gradlew :fabric-1.20.1:build
 ```
 
 产物位于各子项目的 `build/libs/` 目录。
@@ -54,7 +72,7 @@
 ```
 VoiceBlock/
 ├── common/              # 跨平台共享代码与资源
-│   ├── java/            # VoskRecognizer, BlockMatcher 等核心逻辑
+│   ├── java/            # VoskRecognizer, BlockMatcher, InventoryUtil, SoundUtil 等核心逻辑
 │   └── resources/       # blocks.json, vosk-model, lang
 ├── fabric/              # Fabric 平台特定代码
 ├── forge/               # Forge 平台特定代码
@@ -73,6 +91,7 @@ VoiceBlock/
 
 本项目仅供学习交流使用。
 
+---
 
 ## 开发者指南：如何添加自定义方块
 
@@ -168,4 +187,4 @@ VoiceBlock 的方块匹配数据全部存放在 `common/resources/assets/voicebl
 - `blocks.json` 必须是合法的 JSON 格式，逗号、括号不能漏。
 - `id` 必须与游戏中实际注册的物品 ID 完全一致，否则切换方块会失败。
 - `name` 和 `aliases` 建议用简体中文，避免生僻字影响语音识别。
-- 当前已内置原版（820）、Create（643）、Aeronautics（43）等共 1604 个方块，欢迎 PR 补充更多 Mod 支持。
+- 当前已内置原版（1411）、Create（643）、Simulated（95）、Aeronautics（43）等共 2195 个方块，欢迎 PR 补充更多 Mod 支持。
