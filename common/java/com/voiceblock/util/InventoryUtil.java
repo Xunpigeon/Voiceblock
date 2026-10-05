@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -49,7 +50,8 @@ public class InventoryUtil {
     }
 
     /**
-     * 生存模式：在背包中查找目标物品，并将其与当前选中快捷栏格子的物品交换。
+     * 生存模式：在背包中查找目标物品，并通过容器点击(SWAP)与当前选中快捷栏格子交换。
+     * 使用 ClickType.SWAP 会向服务器发送交换包，避免幽灵方块。
      *
      * @param player         玩家
      * @param blockOrItemId  方块或物品 ID
@@ -82,12 +84,23 @@ public class InventoryUtil {
             return true; // 已经在手上了
         }
 
-        // 交换两个格子的物品
-        ItemStack foundStack = inv.getItem(foundSlot).copy();
-        ItemStack selectedStack = inv.getItem(selected).copy();
-        inv.setItem(foundSlot, selectedStack);
-        inv.setItem(selected, foundStack);
-        player.inventoryMenu.broadcastChanges();
+        // 将背包索引转换为容器菜单索引：
+        //   背包索引 0-8 (快捷栏) -> 容器索引 36-44
+        //   背包索引 9-35 (主背包) -> 容器索引 9-35
+        int foundContainerSlot = (foundSlot < 9) ? (36 + foundSlot) : foundSlot;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gameMode != null) {
+            // ClickType.SWAP：将点击的容器槽与指定的快捷栏索引(selected)交换
+            // 服务器会处理交换并同步回客户端，避免幽灵方块
+            mc.gameMode.handleInventoryMouseClick(
+                player.inventoryMenu.containerId,
+                foundContainerSlot,
+                selected,
+                ClickType.SWAP,
+                player
+            );
+        }
 
         return true;
     }
