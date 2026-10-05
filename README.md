@@ -72,3 +72,100 @@ VoiceBlock/
 ## 许可证
 
 本项目仅供学习交流使用。
+
+
+## 开发者指南：如何添加自定义方块
+
+VoiceBlock 的方块匹配数据全部存放在 `common/resources/assets/voiceblock/blocks.json` 中。如需让你的 Mod 方块被语音识别支持，只需在这个 JSON 文件里添加条目，然后重新编译即可。
+
+### 1. blocks.json 格式
+
+每个方块是一个 JSON 对象，包含三个字段：
+
+```json
+{
+  "id": "minecraft:oak_planks",
+  "name": "橡木木板",
+  "aliases": ["橡木板", "木板"]
+}
+```
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `id` | Minecraft 物品 ID，格式为 `命名空间:方块名`。原版用 `minecraft:`，模组用模组的命名空间 | `create:andesite_casing` |
+| `name` | 中文显示名称，既是匹配关键词，也会在 HUD 上显示 | `安山岩机壳` |
+| `aliases` | 别名数组，说这些词也能匹配到该方块。可留空 `[]` | `["安山机壳", "机壳"]` |
+
+### 2. 如何获取方块 ID
+
+- **方法一（游戏内）**：按 `F3 + H` 开启物品 ID 显示，鼠标悬停在物品上即可看到完整 ID（如 `minecraft:oak_planks`）。
+- **方法二（源码）**：在对应 Mod 的源码中查找方块注册名，通常在 `ModBlocks` 或类似类中。
+- **方法三（JEI/REI）**：安装 JEI 或 REI，在物品上按 `R` 或查看配方可看到 ID。
+
+### 3. 添加方块示例
+
+#### 添加原版方块
+
+```json
+{
+  "id": "minecraft:cherry_planks",
+  "name": "樱花木板",
+  "aliases": ["樱花板", "樱木板"]
+}
+```
+
+#### 添加 Mod 方块（以 Create 为例）
+
+```json
+{
+  "id": "create:brass_casing",
+  "name": "黄铜机壳",
+  "aliases": ["黄铜壳", "铜机壳"]
+}
+```
+
+#### 添加你自己的 Mod 方块
+
+把 `id` 的命名空间换成你的 Mod ID 即可：
+
+```json
+{
+  "id": "mymod:magic_block",
+  "name": "魔法方块",
+  "aliases": ["魔法块", "魔方块"]
+}
+```
+
+### 4. 匹配原理
+
+识别时，`BlockMatcher` 会对语音识别出的文本与 `name` + `aliases` 进行匹配：
+
+- 支持**中文直接匹配**（说"橡木木板"匹配 `橡木木板`）
+- 支持**拼音匹配**（说"xiangmumuban"也能匹配 `橡木木板`，基于 pinyin4j）
+- 支持**模糊匹配**（部分命中即可，容错率高）
+
+> 💡 建议：为常用方块多添加几个口语化别名，能大幅提升识别成功率。比如"橡木台阶"可以加别名"橡木半砖"、"半砖"。
+
+### 5. 重新编译
+
+修改 `blocks.json` 后，在项目根目录运行：
+
+```bash
+# 编译全部 4 个版本
+./gradlew build
+
+# 或只编译指定版本
+./gradlew :fabric-1.21:build
+./gradlew :neoforge-1.21:build
+./gradlew :forge-1.20.1:build
+./gradlew :fabric-1.20.1:build
+```
+
+产物位于各子项目的 `build/libs/` 目录。`blocks.json` 会被打包进 jar，修改后必须重新编译才能生效。
+
+### 6. 注意事项
+
+- `blocks.json` 必须是合法的 JSON 格式，逗号、括号不能漏。
+- `id` 必须与游戏中实际注册的物品 ID 完全一致，否则切换方块会失败。
+- `name` 和 `aliases` 建议用简体中文，避免生僻字影响语音识别。
+- 当前已内置原版（820）、Create（643）、Aeronautics（43）等共 1604 个方块，欢迎 PR 补充更多 Mod 支持。
