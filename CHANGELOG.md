@@ -1,5 +1,68 @@
 # VoiceBlock 更新日志
 
+## v1.3.0 — 2026-10-17
+
+### 核心改动：识别率提升 + 手动绑定 + 物品自动发现
+
+#### 识别率提升：N-best 多候选重排序
+- Vosk 现在返回前 **5 个候选**（不再是只看第 1 名）
+- `BlockMatcher` 改造三层匹配策略：
+  1. **manual override 硬绑定**（拼音匹配，命中即返回，不评分）
+  2. **精确名称/别名**（按候选顺序遍历）
+  3. **N-best 拼音评分**（每个候选对每个 entry 打分，按 entry 取最高，最后取全局最高）
+- 实测效果：以前"安山机壳"识别成"安山基球"完全匹配不到，现在 5 个候选里大概率有一个是"安山机壳"，自动选对
+
+#### 手动绑定：玩家定制发音
+- 配置文件：`config/voiceblock/manual_overrides.json`
+- 格式：`{"triggerPinyin": "anshanjike", "targetId": "create:andesite_casing", "note": "我的口音"}`
+- 触发键说"安山机壳"识别成什么鬼都不怕，只要那个候选的拼音命中规则，就硬指到你想取的方块
+- 配置文件可直接拷贝分享给其他玩家
+
+#### 物品自动发现：覆盖所有 mod 物品
+- 1.2.0 时只扫 BLOCK 注册表，纯物品（无对应方块）漏掉
+- 1.3.0 改用 **`item.getDefaultInstance().getHoverName()`** 跨版本拿名称，扫 `BuiltInRegistries.ITEM` 全量
+- **Block 优先**：已在 BLOCK 表里的 id 跳过
+- **中文优先**：拿不到中文本地化的物品跳过（避免英文名称污染词典）
+- 效果：装新 mod 零配置即可用语音调取大部分物品
+
+#### /voiceblock 调试命令家族
+- `/voiceblock` 显示帮助
+- `/voiceblock debug` 显示最近一次识别的 N-best 候选文本 + 拼音
+- `/voiceblock bind <序号> <方块ID>` 把指定候选的拼音绑到方块（写 overrides.json）
+- `/voiceblock list` 列出所有手动绑定
+- `/voiceblock remove <拼音>` 删除一条绑定
+- `/voiceblock dedup` 扫 4 档冲突 + 输出 `config/voiceblock/duplicates_report.md`
+- `/voiceblock reload` 热重载 overrides.json
+
+#### /voiceblock dedup 报告分档
+1. **name/alias 完全撞名**（必查）
+2. **同一 Item**（id 反查命中，不同 id 指向同一物品）
+3. **拼音完全一致**（同音字）
+4. **拼音高相似**（≥ 0.85）
+仅报告不修改，决策由人做。
+
+#### 代码组织
+- 新增 `match/ManualOverrides.java`（加载/查询/写入）
+- 新增 `match/DedupScanner.java`（扫描 + 报告）
+- 新增 `debug/DebugCommands.java`（命令逻辑，跨平台共用）
+- 新增 `voice/RecognitionResult.java`（N-best 候选封装）
+- `vosk/VoskRecognizer` 加 `setMaxAlternatives(5)` + JSON 解析 alternatives
+- `match/BlockMatcher` 接收 `RecognitionResult`，三层策略
+- `match/BlockData` 增加 ITEM 注册表扫描
+- 4 个平台 ClientEvents 接入 brigadier 客户端命令
+
+#### 多版本构建产物
+| 产物 | 大小 | 适用加载器 / MC 版本 | Java |
+|------|------|---------------------|------|
+| voiceblock-fabric-1.20.1-1.3.0.jar | 66.8 MB | Fabric 1.20.1 ~ 1.20.4 | 17 |
+| voiceblock-fabric-1.21-1.3.0.jar | 66.8 MB | Fabric 1.21.x | 21 |
+| voiceblock-neoforge-1.21-1.3.0.jar | 66.8 MB | NeoForge 1.21 | 21 |
+| voiceblock-forge-1.20.1-1.3.0-all.jar | 68.3 MB | Forge 1.20.1 ~ 1.20.6 | 17 |
+
+#### 已知差异
+- fabric-api 0.92.2（1.20.1）和 0.100.6（1.21）的 v2 source class 名称相同（`FabricClientCommandSource`），但 0.100.6 已移除 v1 的 `ClientCommands` 工具类。两个 fabric 子项目各自维护 ClientEvents.java
+- NeoForge / Forge 共享 `neoforge/java/` 和 `forge/java/`，命令注册用 brigadier 通用 API
+
 ## v1.2.0 — 2026-10-05
 
 ### 核心改动：生存模式支持 + 按键音效提示

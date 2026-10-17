@@ -7,6 +7,8 @@ import org.vosk.Recognizer;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Vosk 离线中文语音识别器。
@@ -16,8 +18,13 @@ import java.nio.file.*;
  * 2. jar 内 assets/voiceblock/vosk-model （内置小模型，开箱即用）
  *
  * 如需更高精度，下载 vosk-model-cn-0.22 (1.3GB) 解压到 config/voiceblock/vosk-model 即可覆盖。
+ *
+ * 1.3.0 起：返回 N-best 候选（默认 5 个），用于多候选重排序以提高识别准确率。
  */
 public class VoskRecognizer {
+
+    /** N-best 候选数，调试命令 /voiceblock bind 依赖此值 */
+    public static final int MAX_ALTERNATIVES = 5;
 
     private static VoskRecognizer instance;
     private Model model;
@@ -111,19 +118,56 @@ public class VoskRecognizer {
 
     /**
      * 识别一段 PCM 音频（16kHz, 16bit, 单声道）。
+     * 返回 N-best 候选，第一个为 Vosk 置信度最高的主结果。
      */
-    public synchronized String recognize(byte[] pcmData) {
-        if (model == null) return "";
+    public synchronized RecognitionResult recognize(byte[] pcmData) {
+        if (model == null) return RecognitionResult.empty();
         try (Recognizer recognizer = new Recognizer(model, 16000.0f)) {
             recognizer.setWords(false);
+            recognizer.setMaxAlternatives(MAX_ALTERNATIVES);
             recognizer.acceptWaveForm(pcmData, pcmData.length);
             String result = recognizer.getFinalResult();
-            String text = extractText(result);
-            return fixEncoding(text);
+            List<String> alts = extractAlternatives(result);
+            for (int i = 0; i < alts.size(); i++) {
+                alts.set(i, fixEncoding(alts.get(i)));
+            }
+            return new RecognitionResult(alts);
         } catch (Exception e) {
             VoiceBlockMod.LOGGER.error("Vosk recognition error", e);
-            return "";
+            return RecognitionResult.empty();
         }
+    }
+
+    /**
+     * 解析 Vosk 返回的 JSON，提取 N-best 候选列表。
+     * 顶层 text 算作候选 0，后续 alternatives 数组里的 text 追加。
+     */
+    private List<String> extractAlternatives(String json) {
+        List<String> alts = new ArrayList<>();
+        if (json == null || json.isEmpty()) return alts;
+        String main = extractText(json);
+        if (!main.isEmpty()) alts.add(main);
+        int idx = json.indexOf("\"alternatives\"");
+        if (idx < 0) return alts;
+        int arrStart = json.indexOf('[', idx);
+        int arrEnd = json.lastIndexOf(']');
+        if (arrStart < 0 || arrEnd < 0 || arrEnd <= arrStart) return alts;
+        String arr = json.substring(arrStart + 1, arrEnd);
+        int pos = 0;
+        while (pos < arr.length()) {
+            int tStart = arr.indexOf("\"text\"", pos);
+            if (tStart < 0) break;
+            int colon = arr.indexOf(':', tStart);
+            if (colon < 0) break;
+            int q1 = arr.indexOf('"', colon + 1);
+            if (q1 < 0) break;
+            int q2 = arr.indexOf('"', q1 + 1);
+            if (q2 < 0) break;
+            String text = arr.substring(q1 + 1, q2);
+            if (!text.isEmpty() && !alts.contains(text)) alts.add(text);
+            pos = q2 + 1;
+        }
+        return alts;
     }
 
     private String fixEncoding(String text) {

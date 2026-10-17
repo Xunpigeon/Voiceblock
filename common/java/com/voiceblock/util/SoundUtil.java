@@ -8,20 +8,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
- * 跨版本音效播放工具。
- * 1.20.x: SoundEvents.XXX 直接返回 SoundEvent
- * 1.21+:  SoundEvents.XXX 返回 Holder<SoundEvent>，需 .value() 解包
+ * 音效播放工具（NeoForge/Forge 专用，使用 Mojang 映射字段反射）。
+ * Fabric 端请直接在 ClientEvents 中用 SoundEvents.XXX 字段访问。
  */
 public class SoundUtil {
 
-    /**
-     * 播放指定音效。
-     *
-     * @param player          玩家
-     * @param soundFieldName  SoundEvents 中的字段名，如 "UI_BUTTON_CLICK"
-     * @param volume          音量 (0.0 ~ 1.0)
-     * @param pitch           音调 (0.5 ~ 2.0)
-     */
     public static void playSound(Player player, String soundFieldName, float volume, float pitch) {
         if (player == null) return;
         try {
@@ -31,8 +22,7 @@ public class SoundUtil {
             if (soundEvent != null) {
                 player.playSound(soundEvent, volume, pitch);
             }
-        } catch (Exception e) {
-            // 静默失败，不影响核心功能
+        } catch (Exception ignored) {
         }
     }
 
