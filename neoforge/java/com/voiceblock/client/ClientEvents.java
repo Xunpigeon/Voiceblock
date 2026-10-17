@@ -48,8 +48,14 @@ public class ClientEvents {
             .then(Commands.literal("debug").executes(c -> { DebugCommands.handleCommand("/voiceblock debug"); return 1; }))
             .then(Commands.literal("bind")
                 .then(Commands.argument("idx", IntegerArgumentType.integer())
+                    .executes(c -> {
+                        // 不带 id：用当前手持
+                        DebugCommands.handleCommand("/voiceblock bind " + IntegerArgumentType.getInteger(c, "idx"));
+                        return 1;
+                    })
                     .then(Commands.argument("id", StringArgumentType.string())
                         .executes(c -> {
+                            // 带 id
                             DebugCommands.handleCommand("/voiceblock bind "
                                 + IntegerArgumentType.getInteger(c, "idx") + " "
                                 + StringArgumentType.getString(c, "id"));

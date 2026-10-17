@@ -48,8 +48,14 @@ public class ClientEvents {
                 .executes(c -> { DebugCommands.handleCommand("/voiceblock debug"); return 1; }))
             .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("bind")
                 .then(com.mojang.brigadier.builder.RequiredArgumentBuilder.<FabricClientCommandSource, Integer>argument("idx", IntegerArgumentType.integer())
+                    .executes(c -> {
+                        // 不带 id：用当前手持
+                        DebugCommands.handleCommand("/voiceblock bind " + IntegerArgumentType.getInteger(c, "idx"));
+                        return 1;
+                    })
                     .then(com.mojang.brigadier.builder.RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("id", StringArgumentType.string())
                         .executes(c -> {
+                            // 带 id
                             DebugCommands.handleCommand("/voiceblock bind "
                                 + IntegerArgumentType.getInteger(c, "idx") + " "
                                 + StringArgumentType.getString(c, "id"));

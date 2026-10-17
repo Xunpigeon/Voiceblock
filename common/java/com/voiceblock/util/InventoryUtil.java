@@ -21,7 +21,7 @@ import java.util.Optional;
 public class InventoryUtil {
 
     /**
-     * 创造模式：替换玩家当前选中快捷栏格子的物品。
+     * 创造模式：替换玩家当前选中快捷栏格子的物品，数量固定为 1（语音调用场景下玩家通常只想要一个）。
      *
      * @param player         玩家
      * @param blockOrItemId  方块或物品 ID
@@ -34,7 +34,8 @@ public class InventoryUtil {
         Item item = resolveItem(blockOrItemId);
         if (item == null) return false;
 
-        ItemStack stack = new ItemStack(item, 64);
+        // 1.3.0 修订：创造模式只给 1 个，避免一次生成 64 个让玩家清不掉的体验
+        ItemStack stack = new ItemStack(item, 1);
         setItemDisplayName(stack, displayName);
 
         int slot = player.getInventory().selected;
@@ -47,6 +48,26 @@ public class InventoryUtil {
         player.inventoryMenu.broadcastChanges();
 
         return true;
+    }
+
+    /**
+     * 跨版本获取物品的默认最大堆叠数。
+     * - 1.20.5+: Item.getDefaultMaxStackSize()
+     * - 1.20.1:  Item.getMaxStackSize() (1.20.5+ 标记 deprecated，但 1.20.1 是唯一选择)
+     */
+    public static int getDefaultMaxStackSize(Item item) {
+        if (item == null) return 1;
+        try {
+            Method m = item.getClass().getMethod("getDefaultMaxStackSize");
+            Object r = m.invoke(item);
+            if (r instanceof Integer i) return i;
+        } catch (Exception ignored) {}
+        try {
+            Method m = item.getClass().getMethod("getMaxStackSize");
+            Object r = m.invoke(item);
+            if (r instanceof Integer i) return i;
+        } catch (Exception ignored) {}
+        return 64;
     }
 
     /**

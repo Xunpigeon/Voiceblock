@@ -6,7 +6,10 @@ import com.voiceblock.match.ManualOverrides;
 import com.voiceblock.match.PinyinUtil;
 import com.voiceblock.voice.RecognitionResult;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -49,7 +52,7 @@ public class DebugCommands {
         if (stripped.isEmpty()) {
             sendFeedback(mc, "§6=== VoiceBlock 命令 ===");
             sendFeedback(mc, "/voiceblock debug   显示最近一次 N-best 候选");
-            sendFeedback(mc, "/voiceblock bind <序号> <方块ID>   绑定候选到方块");
+            sendFeedback(mc, "/voiceblock bind <序号> [方块ID]   绑定候选到方块（不写 ID 用当前手持）");
             sendFeedback(mc, "/voiceblock list   列出所有手动绑定");
             sendFeedback(mc, "/voiceblock remove <拼音>   删除一条绑定");
             sendFeedback(mc, "/voiceblock dedup   扫冲突 + 输出报告");
@@ -62,11 +65,12 @@ public class DebugCommands {
         switch (sub) {
             case "debug" -> handleDebug(mc);
             case "bind" -> {
-                if (parts.length < 3) {
-                    sendFeedback(mc, "§c用法: /voiceblock bind <候选序号> <方块ID>");
+                if (parts.length < 2) {
+                    sendFeedback(mc, "§c用法: /voiceblock bind <候选序号> [方块ID]");
                     return true;
                 }
-                handleBind(mc, parts[1], parts[2]);
+                String targetId = parts.length >= 3 ? parts[2] : null;
+                handleBind(mc, parts[1], targetId);
             }
             case "list" -> handleList(mc);
             case "remove" -> {
@@ -125,11 +129,30 @@ public class DebugCommands {
             sendFeedback(mc, "§c该候选为空或不含中文，无法生成拼音");
             return;
         }
-        boolean added = ManualOverrides.getInstance().addOrUpdate(pinyin, targetId, null);
-        if (added) {
-            sendFeedback(mc, "§a已添加绑定: §f" + pinyin + " §7-> §f" + targetId);
+
+        // 解析 targetId：不写或空白时用当前手持物品的 ID
+        String resolvedId;
+        if (targetId == null || targetId.isBlank()) {
+            ItemStack held = mc.player.getInventory().getItem(mc.player.getInventory().selected);
+            if (held.isEmpty()) {
+                sendFeedback(mc, "§c请手持一个物品（不写 ID 时使用当前手持作为目标）");
+                return;
+            }
+            ResourceLocation rl = BuiltInRegistries.ITEM.getKey(held.getItem());
+            if (rl == null) {
+                sendFeedback(mc, "§c无法解析手持物品 ID");
+                return;
+            }
+            resolvedId = rl.toString();
         } else {
-            sendFeedback(mc, "§a已覆盖绑定: §f" + pinyin + " §7-> §f" + targetId);
+            resolvedId = targetId;
+        }
+
+        boolean added = ManualOverrides.getInstance().addOrUpdate(pinyin, resolvedId, null);
+        if (added) {
+            sendFeedback(mc, "§a已添加绑定: §f" + pinyin + " §7-> §f" + resolvedId);
+        } else {
+            sendFeedback(mc, "§a已覆盖绑定: §f" + pinyin + " §7-> §f" + resolvedId);
         }
     }
 
