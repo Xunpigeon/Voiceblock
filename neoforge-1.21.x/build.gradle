@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '1.0.21'
 }
 
-version = '2.0.9'
+version = '2.0.10'
 group = 'com.voiceblock'
 
 base { archivesName = 'voiceblock-neoforge-1.21' }

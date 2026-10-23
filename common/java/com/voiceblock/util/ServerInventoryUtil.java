@@ -45,10 +45,12 @@ public final class ServerInventoryUtil {
 
         int slot = player.getInventory().selected;
         player.getInventory().setItem(slot, stack);
-        // broadcastChanges 是 vanilla 自带的 dirty-slot 同步，会自动给客户端发 ContainerSetSlot 包
-        player.containerMenu.broadcastChanges();
-        // 同时把服务端缓存的快捷栏视图也对齐（避免下次 broadcast 漏判）
-        player.containerMenu.setRemoteSlot(36 + slot, stack);
+        // 只改真实槽位，然后让 vanilla 自己做差分同步。
+        // ⚠️ 千万不要在这里调 containerMenu.setRemoteSlot(...)：remoteSlots 是"客户端已知状态"的缓存，
+        // broadcastChanges() 靠 (真实槽位 != remoteSlots) 判断要不要发包。提前把缓存改成新值，
+        // 差分永远是 0，这个格子的同步包就永远不发 → 客户端手上显示空的（幽灵方块），
+        // 但服务端认为东西在手上，右键还能放下去。
+        syncInventory(player);
         VoiceBlockMod.LOGGER.debug("[VoiceBlock] server creative: gave {}x {} into slot {}",
                 stack.getCount(), blockOrItemId, slot);
         return true;
@@ -73,18 +75,44 @@ public final class ServerInventoryUtil {
         if (foundSlot == -1) return false;
         if (foundSlot == selected) return true;
 
-        // 复制避免引用问题
+        // 先各拷一份再交换，避免 setItem 之后读到已变的引用
         ItemStack fromInv = inv.getItem(foundSlot).copy();
         ItemStack fromSelected = inv.getItem(selected).copy();
 
+        // 一次性改两个槽位（原位置和选中格），然后让 vanilla 一次性差分同步。
+        // 这里同样不能预先 setRemoteSlot：会导致选中格的同步包被永久吞掉（幽灵方块）。
         inv.setItem(foundSlot, fromSelected);
         inv.setItem(selected, fromInv);
 
-        player.containerMenu.setRemoteSlot(36 + selected, fromInv);
-        player.containerMenu.broadcastChanges();
+        syncInventory(player);
         VoiceBlockMod.LOGGER.debug("[VoiceBlock] server survival swap: slot {} <-> slot {}",
                 foundSlot, selected);
         return true;
+    }
+
+    /**
+     * 把服务端背包改动立刻同步给客户端。
+     *
+     * <p>vanilla 的 {@code broadcastChanges()} 只发"真实槽位与 remoteSlots 缓存不一致"的格子，
+     * 所以调用前不能手动改 remoteSlots（见上面两处注释）。</p>
+     *
+     * <p>另外 {@code containerMenu} 在某些状态下（比如玩家开着别的容器）可能不是 inventoryMenu，
+     * 这里统一用 {@code player.inventoryMenu} 兜底，保证 36 个背包格 + 快捷栏都会同步。</p>
+     */
+    private static void syncInventory(ServerPlayer player) {
+        try {
+            player.containerMenu.broadcastChanges();
+        } catch (Throwable t) {
+            VoiceBlockMod.LOGGER.warn("[VoiceBlock] broadcastChanges failed: {}", t.toString());
+        }
+        // 如果玩家此刻开着别的容器（箱子/背包），inventoryMenu 的 remoteSlots 也需要对齐，
+        // 否则关闭容器后会拿着旧数据渲染。
+        try {
+            if (player.containerMenu != player.inventoryMenu) {
+                player.inventoryMenu.broadcastChanges();
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     /**

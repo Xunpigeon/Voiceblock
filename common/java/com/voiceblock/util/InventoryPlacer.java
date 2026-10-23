@@ -46,7 +46,20 @@ public class InventoryPlacer {
             }
         }
 
-        return original - remaining.getCount();
+        int placed = original - remaining.getCount();
+        // 服务端放完立刻同步，否则客户端要等下一次全量同步才看得到（表现就是"东西进了背包但显示没有"）。
+        // 注意：只在真正放了东西、且确实在服务端时才发，避免客户端 LocalPlayer 走这条路。
+        if (placed > 0 && player instanceof net.minecraft.server.level.ServerPlayer sp) {
+            try {
+                sp.containerMenu.broadcastChanges();
+                if (sp.containerMenu != sp.inventoryMenu) {
+                    sp.inventoryMenu.broadcastChanges();
+                }
+            } catch (Throwable ignored) {
+                // 同步失败不能影响取物本身
+            }
+        }
+        return placed;
     }
 
     /**

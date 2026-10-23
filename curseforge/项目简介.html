@@ -1,0 +1,229 @@
+<h1>Voiceblock 出口成方</h1>
+<p><strong>说出物品的名字，直接把它拿到手上。</strong></p>
+<p>基于 Vosk 的<strong>完全离线</strong>中文语音识别，面向中文玩家 —— 尤其是<strong>视障玩家</strong>（没法靠眼睛在背包里翻找物品）。</p>
+<hr>
+<h2>✨ 它解决什么问题</h2>
+<p>普通玩家找一个物品要在背包里翻半天；视障玩家基本不可能完成这件事。
+VoiceBlock 让你<strong>按住一个鼠标侧键，说出物品名字，东西就到手上</strong> —— 全程不用看屏幕，也不需要联网。</p>
+<p>识别在本地完成（内置 Vosk 中文模型），断网、离线、单人存档、服务器都能用。</p>
+<hr>
+<h2>🎮 怎么用</h2>
+<ol>
+<li>把对应版本的 jar 放进 <code>mods/</code></li>
+<li>首次启动会把语音模型解压到 <code>config/voiceblock/vosk-model/</code></li>
+<li>进游戏，<strong>按住鼠标侧键 5</strong> 说出物品名（按下有&quot;叮&quot;的提示音），松开后自动识别</li>
+<li>HUD 会显示识别到的内容，聊天栏会告诉你成功还是失败（失败会说清楚原因）</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>按键</th>
+<th>默认</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>key.voiceblock.use</code></td>
+<td>鼠标侧键 5</td>
+<td>按住说话，松开取物</td>
+</tr>
+<tr>
+<td><code>key.voiceblock.learn</code></td>
+<td>鼠标侧键 4</td>
+<td>学习模式：手持物品按住说话，记住你的发音</td>
+</tr>
+</tbody></table>
+<p>两个键都可以在「控制 → 按键绑定 → VoiceBlock」里改。</p>
+<hr>
+<h2>🗣️ 7 个取物来源</h2>
+<p>按住键说话后，模组会按优先级依次尝试下面的来源，找到就停：</p>
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>来源</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>背包</td>
+<td>✅</td>
+<td>自己身上的 36 格 + 副手</td>
+</tr>
+<tr>
+<td>2</td>
+<td>精妙背包</td>
+<td>✅</td>
+<td>读取背包<strong>里面</strong>的物品，不是背包本身</td>
+</tr>
+<tr>
+<td>3</td>
+<td>末影箱</td>
+<td>⬜</td>
+<td>玩家私有空间，默认关闭（可按需打开）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>潜行盒</td>
+<td>✅</td>
+<td>1.20.5+ 可用</td>
+</tr>
+<tr>
+<td>5</td>
+<td>AE2</td>
+<td>✅</td>
+<td>需要无线终端已绑定到 ME 网络</td>
+</tr>
+<tr>
+<td>6</td>
+<td>汤姆的简易储存</td>
+<td>✅</td>
+<td>无线终端，或周围 8 格内的存储终端</td>
+</tr>
+<tr>
+<td>7</td>
+<td>周围箱子</td>
+<td>✅</td>
+<td>半径 16 格内的容器（可在配置里调小）</td>
+</tr>
+</tbody></table>
+<p>用 <code>/voiceblock source list</code> 可以随时查看每个来源的开关、是否可用、优先级和半径。</p>
+<hr>
+<h2>🌐 联机 / 服务器</h2>
+<p><strong>服务端也要装同一个 jar</strong>，否则只能取自己背包里的物品（模组会提示你）。</p>
+<p>装了两端之后：客户端只负责识别，把「物品 ID + 数量」发给服务端，<strong>由服务端真正执行取物</strong>。
+这样末影箱、AE2 网络、箱子里的东西才不会出现&quot;读取到空壳&quot;的问题。</p>
+<hr>
+<h2>🎓 学习模式（口音救星）</h2>
+<p>口音重、或者某个物品怎么念都识别不准？</p>
+<ol>
+<li>手持那个物品</li>
+<li>按住<strong>鼠标侧键 4</strong>，说出你平时怎么叫它</li>
+<li>松手，这个发音就被记住了（写进 <code>config/voiceblock/manual_overrides.json</code>）</li>
+</ol>
+<p>如果这个物品之前已经录过发音，会弹两个按钮让你选：<strong>覆盖</strong>旧发音，或者<strong>加为模糊名称</strong>（两个都保留）。</p>
+<hr>
+<h2>💬 命令</h2>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/voiceblock</code></td>
+<td>帮助</td>
+</tr>
+<tr>
+<td><code>/voiceblock debug</code></td>
+<td>看最近一次识别的 5 个候选</td>
+</tr>
+<tr>
+<td><code>/voiceblock bind &lt;序号&gt; [物品ID]</code></td>
+<td>把某个候选绑定到物品</td>
+</tr>
+<tr>
+<td><code>/voiceblock list</code></td>
+<td>查看所有手动绑定</td>
+</tr>
+<tr>
+<td><code>/voiceblock remove &lt;拼音&gt;</code></td>
+<td>删除一条绑定</td>
+</tr>
+<tr>
+<td><code>/voiceblock reload</code></td>
+<td>热重载配置</td>
+</tr>
+<tr>
+<td><code>/voiceblock source list</code></td>
+<td>查看所有物品源状态</td>
+</tr>
+<tr>
+<td><code>/voiceblock source enable|disable &lt;名字&gt;</code></td>
+<td>开关某个来源</td>
+</tr>
+<tr>
+<td><code>/voiceblock source priority &lt;名字&gt; &lt;数字&gt;</code></td>
+<td>调整优先级（越小越先尝试）</td>
+</tr>
+<tr>
+<td><code>/voiceblock source radius &lt;名字&gt; &lt;数字&gt;</code></td>
+<td>调整扫描半径</td>
+</tr>
+<tr>
+<td><code>/voiceblock test &lt;物品ID&gt; [数量]</code></td>
+<td><strong>诊断用</strong>：不说话，直接走一次取物链路</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><code>/voiceblock test</code> 在联机排查时特别好用：一句话就能知道服务端装没装、通道通不通、哪个来源在报错。</p>
+</blockquote>
+<hr>
+<h2>📦 支持的版本</h2>
+<table>
+<thead>
+<tr>
+<th>加载器</th>
+<th>Minecraft</th>
+<th>Java</th>
+<th>下载文件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fabric</td>
+<td>1.20.1 ~ 1.20.4</td>
+<td>17</td>
+<td><code>voiceblock-fabric-1.20.1-2.0.9.jar</code></td>
+</tr>
+<tr>
+<td>Fabric</td>
+<td>1.21 / 1.21.1</td>
+<td>21</td>
+<td><code>voiceblock-fabric-1.21-2.0.9.jar</code></td>
+</tr>
+<tr>
+<td>Forge</td>
+<td>1.20.1</td>
+<td>17</td>
+<td><code>voiceblock-forge-1.20.1-2.0.9.jar</code></td>
+</tr>
+<tr>
+<td>NeoForge</td>
+<td>1.21 / 1.21.1</td>
+<td>21</td>
+<td><code>voiceblock-neoforge-1.21-2.0.9.jar</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 请下载<strong>不带 <code>-all</code></strong> 的文件。<code>-all</code> 是 jar-in-jar 变体，部分环境会报 <code>NoClassDefFoundError: org/vosk/Model</code>。</p>
+</blockquote>
+<hr>
+<h2>🧩 兼容性说明</h2>
+<ul>
+<li>物品词典覆盖原版 + Create / 机械动力等常见整合包物品（2200+ 条），启动时还会自动从注册表补充</li>
+<li>拼音模糊匹配：说&quot;原石&quot;、&quot;yuanshi&quot;、&quot;安山机壳&quot; 这类都能命中</li>
+<li>精妙背包 / AE2 / 汤姆的简易储存 / 潜行盒都是<strong>软依赖</strong>：没装就自动跳过，不会报错</li>
+<li>内置模型较小，识别一般够用；想要更高精度可以往 <code>config/voiceblock/vosk-model/</code> 放一个更大的 Vosk 中文模型，会自动优先使用</li>
+</ul>
+<hr>
+<h2>❓ 常见问题</h2>
+<p><strong>Q：说了没反应？</strong>
+先看聊天栏有没有提示。如果提示&quot;未找到&quot;，说明你选中的来源里没有这个物品；
+用 <code>/voiceblock source list</code> 检查来源开关，或者用 <code>/voiceblock test &lt;物品ID&gt;</code> 直接验证链路。</p>
+<p><strong>Q：服务器上取不到箱子里的东西？</strong>
+服务端没装模组。联机必须两端都装。</p>
+<p><strong>Q：识别不准？</strong>
+用学习模式（侧键 4）录一遍你自己的发音，比改任何设置都有效。</p>
+<p><strong>Q：支持英文吗？</strong>
+目前只针对中文语音优化。</p>
+<hr>
+<h2>🔗 链接</h2>
+<ul>
+<li>源码 / 问题反馈：<a href="https://github.com/Xunpigeon/Voiceblock">GitHub</a></li>
+<li>更新日志：<a href="https://github.com/Xunpigeon/Voiceblock/blob/main/CHANGELOG.md">CHANGELOG</a></li>
+</ul>
+<h2>📄 许可</h2>
+<p>MIT</p>

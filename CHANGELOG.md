@@ -1,5 +1,33 @@
 # VoiceBlock 更新日志
 
+## v2.0.10 — 2026-10-23
+
+### 修复：从背包取物到手上时出现「幽灵方块」
+
+**现象**：用语音把背包里的物品换到当前选中的快捷栏后，客户端手上显示是空的（方块不渲染），
+但按右键又能正常放下去 —— 服务端认为物品在手上，客户端却看不到。
+
+**根因**：`ServerInventoryUtil.swapWithInventory` 在 `broadcastChanges()` **之前**手动调用了
+`containerMenu.setRemoteSlot(...)`，把「客户端已知状态」的缓存提前改成了新值。
+而 `broadcastChanges()` 是靠 `(真实槽位 != remoteSlots 缓存)` 做差分的 ——
+缓存被提前改成新值后，差分永远是 0，这个格子的 `ContainerSetSlot` 包从此不再发送，
+直到某次全量同步（比如打开背包）才恢复。这正是"短暂幽灵"。
+
+创造模式的 `replaceSelectedItem` 也有同样的多余调用（顺序不同，影响较小），一并去掉。
+
+**修复**：
+- 移除两处 `setRemoteSlot` 调用，只修改真实槽位，然后统一走 `syncInventory()`
+  （`containerMenu.broadcastChanges()`；若玩家开着别的容器，再对齐一次 `inventoryMenu`）
+- `InventoryPlacer` 放置物品后立即同步（容器类物品源：箱子 / 末影箱 / 汤姆储存 / AE2 / 精妙背包 / 潜行盒），
+  不再依赖下一次 tick 的广播
+
+**影响**：四个平台（共用 common 代码），Fabric 1.20.1 / 1.21、Forge 1.20.1、NeoForge 1.21 同时修复。
+
+**验证**：Forge 1.20.1 开发环境，石头放在主背包第 1 格、选中格清空 →
+`/voiceblock test minecraft:stone` → 客户端 `/item/mainhand` 立即返回 `minecraft:stone x64`（修复前为 0），
+服务端日志 `succeeded via inventory x64`。
+
+
 ## v2.0.9 — 2026-10-23
 
 > 说明：v2.0.0 ~ v2.0.8 的改动此前没有逐版记录，这里把最终形态与本次修复合并说明。
