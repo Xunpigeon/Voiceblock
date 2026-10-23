@@ -26,3 +26,15 @@ config/
 *.log
 *.tmp
 *.bak
+# 开发运行目录（含世界/日志/下载的资源，不提交）
+run-client/
+run-server/
+run-gametest/
+*-natives/
+
+# 本地测试用的正式版 mod（体积大，不提交）
+mods-正式版不要放这里/
+
+# 内部交接文档与规划
+HANDOVER.md
+.spec/

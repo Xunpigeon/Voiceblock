@@ -15,6 +15,7 @@ import org.lwjgl.glfw.GLFW;
 public class KeyBindings {
     public static final String CATEGORY = "key.categories.voiceblock";
     public static KeyMapping voiceBlockKey;
+    public static KeyMapping voiceBlockLearnKey;
 
     static {
         voiceBlockKey = new KeyMapping(
@@ -23,10 +24,18 @@ public class KeyBindings {
                 GLFW.GLFW_MOUSE_BUTTON_5,
                 CATEGORY
         );
+        // 学习模式：手持物品按住此键说话，即可把该物品的名字记进 manual_overrides.json
+        voiceBlockLearnKey = new KeyMapping(
+                "key.voiceblock.learn",
+                InputConstants.Type.MOUSE,
+                GLFW.GLFW_MOUSE_BUTTON_4,
+                CATEGORY
+        );
     }
 
     @SubscribeEvent
     public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(voiceBlockKey);
+        event.register(voiceBlockLearnKey);
     }
 }

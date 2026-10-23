@@ -1,7 +1,8 @@
 package com.voiceblock.match;
 
 import com.voiceblock.VoiceBlockMod;
-import net.minecraft.core.registries.BuiltInRegistries;
+import com.voiceblock.util.RegistryAccess;
+import com.voiceblock.util.ResourceLocations;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 
@@ -96,10 +97,10 @@ public class DedupScanner {
         // 4. id 反查同 Item（两个不同 id 但实际是同一 Item）
         Map<Item, List<BlockData.BlockEntry>> byItem = new HashMap<>();
         for (BlockData.BlockEntry e : entries) {
-            ResourceLocation rl = ResourceLocation.tryParse(e.id());
+            ResourceLocation rl = ResourceLocations.tryParse(e.id());
             if (rl == null) continue;
             try {
-                Item item = BuiltInRegistries.ITEM.get(rl);
+                Item item = RegistryAccess.getItem(rl);
                 if (item == null) continue;
                 byItem.computeIfAbsent(item, k -> new ArrayList<>()).add(e);
             } catch (Exception ignored) {}

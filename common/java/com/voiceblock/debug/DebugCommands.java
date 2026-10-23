@@ -4,9 +4,9 @@ import com.voiceblock.VoiceBlockMod;
 import com.voiceblock.match.DedupScanner;
 import com.voiceblock.match.ManualOverrides;
 import com.voiceblock.match.PinyinUtil;
+import com.voiceblock.util.RegistryAccess;
 import com.voiceblock.voice.RecognitionResult;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -56,6 +56,7 @@ public class DebugCommands {
             sendFeedback(mc, "/voiceblock list   列出所有手动绑定");
             sendFeedback(mc, "/voiceblock remove <拼音>   删除一条绑定");
             sendFeedback(mc, "/voiceblock dedup   扫冲突 + 输出报告");
+            sendFeedback(mc, "§d学习模式：手持物品按住【鼠标侧键4】说话，即可记录该物品的名字");
             return true;
         }
 
@@ -138,7 +139,7 @@ public class DebugCommands {
                 sendFeedback(mc, "§c请手持一个物品（不写 ID 时使用当前手持作为目标）");
                 return;
             }
-            ResourceLocation rl = BuiltInRegistries.ITEM.getKey(held.getItem());
+            ResourceLocation rl = RegistryAccess.getItemKey(held.getItem());
             if (rl == null) {
                 sendFeedback(mc, "§c无法解析手持物品 ID");
                 return;

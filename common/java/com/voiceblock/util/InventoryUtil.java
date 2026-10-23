@@ -1,7 +1,6 @@
 package com.voiceblock.util;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -12,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
@@ -62,11 +62,13 @@ public class InventoryUtil {
             Object r = m.invoke(item);
             if (r instanceof Integer i) return i;
         } catch (Exception ignored) {}
-        try {
-            Method m = item.getClass().getMethod("getMaxStackSize");
-            Object r = m.invoke(item);
-            if (r instanceof Integer i) return i;
-        } catch (Exception ignored) {}
+        // 1.20.1 官方名为 getMaxStackSize；Forge reobf 后为 SRG m_41459_；Fabric 生产环境为 intermediary method_7882
+        for (String name : new String[]{"getMaxStackSize", "m_41459_", "method_7882"}) {
+            try {
+                Object r = item.getClass().getMethod(name).invoke(item);
+                if (r instanceof Integer i) return i;
+            } catch (Exception ignored) {}
+        }
         return 64;
     }
 
@@ -130,11 +132,11 @@ public class InventoryUtil {
      * 将方块/物品 ID 解析为 Item 对象。
      */
     private static Item resolveItem(String blockOrItemId) {
-        ResourceLocation rl = ResourceLocation.tryParse(blockOrItemId);
+        ResourceLocation rl = ResourceLocations.tryParse(blockOrItemId);
         if (rl == null) return null;
 
         // 优先通过方块注册表获取对应物品
-        Optional<Block> blockOpt = BuiltInRegistries.BLOCK.getOptional(rl);
+        Optional<Block> blockOpt = RegistryAccess.getOptionalBlock(rl);
         if (blockOpt.isPresent()) {
             Item blockItem = blockOpt.get().asItem();
             if (blockItem != null && blockItem != Items.AIR) {
@@ -143,8 +145,7 @@ public class InventoryUtil {
         }
 
         // 方块没有对应物品时，直接查物品注册表
-        Optional<Item> itemOpt = BuiltInRegistries.ITEM.getOptional(rl);
-        return itemOpt.orElse(null);
+        return RegistryAccess.getOptionalItem(rl).orElse(null);
     }
 
     /**
@@ -152,17 +153,23 @@ public class InventoryUtil {
      * 1.20.5+ 使用 DataComponents.CUSTOM_NAME，1.20.1-1.20.4 使用 setHoverName。
      */
     private static void setItemDisplayName(ItemStack stack, String name) {
+        if (name == null || name.isBlank()) return;
         try {
-            Class<?> dcClass = Class.forName("net.minecraft.core.component.DataComponents");
-            Object customName = dcClass.getField("CUSTOM_NAME").get(null);
-            Class<?> dcType = Class.forName("net.minecraft.core.component.DataComponentType");
-            Method setMethod = ItemStack.class.getMethod("set", dcType, Object.class);
-            setMethod.invoke(stack, customName, Component.literal(name));
+            Class<?> dcClass = ClassLookup.forName("net.minecraft.core.component.DataComponents", "net.minecraft.class_9334");
+            Field customNameField = ClassLookup.field(dcClass, "CUSTOM_NAME", "field_49631");
+            Class<?> dcType = ClassLookup.forName("net.minecraft.core.component.DataComponentType", "net.minecraft.class_9331");
+            Method setMethod = ClassLookup.method(ItemStack.class, new String[]{"set", "method_57379"}, dcType, Object.class);
+            if (customNameField == null || setMethod == null) throw new NoSuchFieldException("CUSTOM_NAME/set");
+            setMethod.invoke(stack, customNameField.get(null), Component.literal(name));
+            return;
         } catch (Exception e) {
-            try {
-                Method hoverMethod = ItemStack.class.getMethod("setHoverName", Component.class);
-                hoverMethod.invoke(stack, Component.literal(name));
-            } catch (Exception ignored) {}
+            // 1.20.1 官方名为 setHoverName；Forge reobf 后为 SRG m_41714_；Fabric 生产环境为 intermediary method_7977
+            for (String methodName : new String[]{"setHoverName", "m_41714_", "method_7977"}) {
+                try {
+                    ItemStack.class.getMethod(methodName, Component.class).invoke(stack, Component.literal(name));
+                    return;
+                } catch (Exception ignored) {}
+            }
         }
     }
 }

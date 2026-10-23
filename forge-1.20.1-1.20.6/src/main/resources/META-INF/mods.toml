@@ -3,19 +3,24 @@ loaderVersion="[47,)"
 license="MIT"
 [[mods]]
 modId="voiceblock"
-version="1.3.0"
+version="2.0.9"
 displayName="语音方块 VoiceBlock"
 description='''说出方块名字，瞬间拿到方块。完全离线的中文语音识别模组。'''
 authors="Xunpigeon"
+# v2.0.8：视障玩家整合包专用 — 服务端装 = 联机时由服务端执行 takeAny，
+# 从周围 Iron Chest / 木桶 / 箱子 / 末影箱 / AE2 / 汤姆的简易储存 / 精妙背包装入物品。
+# 联机场景强烈建议两端都装；单人只需要客户端。
 [[dependencies.voiceblock]]
     modId="forge"
+    mandatory=true
     type="required"
     versionRange="[47,)"
     ordering="NONE"
-    side="CLIENT"
+    side="BOTH"
 [[dependencies.voiceblock]]
     modId="minecraft"
+    mandatory=true
     type="required"
     versionRange="[1.20.1,1.21)"
     ordering="NONE"
-    side="CLIENT"
+    side="BOTH"

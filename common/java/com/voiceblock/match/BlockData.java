@@ -3,7 +3,8 @@ package com.voiceblock.match;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.voiceblock.VoiceBlockMod;
-import net.minecraft.core.registries.BuiltInRegistries;
+import com.voiceblock.util.RegistryAccess;
+import com.voiceblock.util.ResourceLocations;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -20,6 +21,8 @@ import java.util.*;
  *
  * 1.3.0 起：自动发现扩展到 ITEM 注册表（覆盖仅物品、无对应方块的物品，如牛排、应用能源物品等）。
  * Block 优先（已收录的 id 跳过），无中文名跳过（避免英文物品名称污染词典）。
+ *
+ * <p>通过 {@link RegistryAccess} 反射访问注册表，避免 Forge 1.20.1 AT 重命名字段导致崩溃。</p>
  */
 public class BlockData {
 
@@ -87,8 +90,8 @@ public class BlockData {
     private static int discoverBlocks(List<BlockEntry> list, Set<String> knownIds) {
         int added = 0;
         try {
-            for (Block block : BuiltInRegistries.BLOCK) {
-                ResourceLocation rl = BuiltInRegistries.BLOCK.getKey(block);
+            for (Block block : RegistryAccess.allBlocks()) {
+                ResourceLocation rl = RegistryAccess.getBlockKey(block);
                 if (rl == null) continue;
                 String id = rl.getNamespace() + ":" + rl.getPath();
                 if (!knownIds.contains(id)) {
@@ -115,8 +118,8 @@ public class BlockData {
     private static int discoverItems(List<BlockEntry> list, Set<String> knownIds) {
         int added = 0;
         try {
-            for (Item item : BuiltInRegistries.ITEM) {
-                ResourceLocation rl = BuiltInRegistries.ITEM.getKey(item);
+            for (Item item : RegistryAccess.allItems()) {
+                ResourceLocation rl = RegistryAccess.getItemKey(item);
                 if (rl == null) continue;
                 String id = rl.getNamespace() + ":" + rl.getPath();
                 if (knownIds.contains(id)) continue;

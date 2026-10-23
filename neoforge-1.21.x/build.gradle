@@ -3,7 +3,7 @@ plugins {
     id 'net.neoforged.moddev' version '1.0.21'
 }
 
-version = '1.3.0'
+version = '2.0.9'
 group = 'com.voiceblock'
 
 base { archivesName = 'voiceblock-neoforge-1.21' }
@@ -11,10 +11,41 @@ base { archivesName = 'voiceblock-neoforge-1.21' }
 repositories { mavenCentral() }
 
 dependencies {
+    // 注意：NeoForge 21.1.255 启用 Java 21 模块系统（JPMS），jarJar 会把 pinyin4j/vosk
+    // 提升为独立子模块，导致 split package 冲突（"Modules voiceblock and pinyin4j export
+    // package ..."）。所以只保留 implementation 让 inlineDeps 把类展平到主 jar 根目录，
+    // 不再 jar-in-jar 暴露为子模块。
     implementation "com.alphacephei:vosk:0.3.45"
-    jarJar "com.alphacephei:vosk:0.3.45"
     implementation "com.belerweb:pinyin4j:2.5.1"
-    jarJar "com.belerweb:pinyin4j:2.5.1"
+}
+
+// 把 Vosk + Pinyin4j 两个 jar 直接展平打进主 jar（类 / 原生库）。
+// 原因：NeoForge/Forge 的 jar-in-jar 在某些版本/ModLauncher 组合下
+// 不会自动加载 META-INF/jarjar 里的嵌套 jar，导致 NoClassDefFoundError:
+//   - org.vosk.Model
+//   - net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination
+tasks.register("inlineDeps") {
+    def inlineSrc = file("${buildDir}/inlined-deps")
+    doLast {
+        if (inlineSrc.exists()) inlineSrc.deleteDir()
+        inlineSrc.mkdirs()
+        // runtimeClasspath 包含 implementation 引入的 jar；compileClasspath 在 gradle
+        // 现代约定下不一定包含 implementation
+        configurations.runtimeClasspath.resolve().each { dep ->
+            if (dep.name.startsWith("vosk-") || dep.name.startsWith("pinyin4j-")) {
+                copy {
+                    from zipTree(dep)
+                    into inlineSrc
+                }
+                logger.lifecycle("[VoiceBlock] Inlined ${dep.name} into main jar")
+            }
+        }
+    }
+}
+
+tasks.named("jar") {
+    dependsOn "inlineDeps"
+    from file("${buildDir}/inlined-deps")
 }
 
 java {
@@ -23,7 +54,12 @@ java {
 
 neoForge {
     version = '21.0.143'
-    runs { client { client() } }
+    runs {
+        client { client() }
+        // v2.0.x 服务端支持：视障玩家联机时，识别结果通过 VoiceActionPayload
+        // 发到服务端，服务端跑 SourceManager.takeAny() 再回 VoiceActionResultPayload。
+        server { server() }
+    }
     mods { voiceblock { sourceSet sourceSets.main } }
 }
 

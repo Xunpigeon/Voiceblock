@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '6.0.24'
 }
 
-version = '1.3.0'
+version = '2.0.9'
 group = 'com.voiceblock'
 
 base { archivesName = 'voiceblock-forge-1.20.1' }
@@ -18,17 +18,65 @@ dependencies {
     jarJar(group: "com.belerweb", name: "pinyin4j", version: "[2.5.1,2.6.0)")
 }
 
+// 把 Vosk + Pinyin4j 两个 jar 直接展平打进主 jar（类 / 原生库）。
+// 原因：Forge 的 jar-in-jar 在某些版本/ModLauncher 组合下不会自动加载
+// META-INF/jarjar 里的嵌套 jar，导致 NoClassDefFoundError:
+//   - org.vosk.Model       (Vosk 0.3.45)
+//   - net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination
+// 展平后类被装在主 jar 的根 classpath 上，classloader 直接命中。
+tasks.register("inlineDeps") {
+    def inlineSrc = file("${buildDir}/inlined-deps")
+    inputs.files(
+        configurations.compileClasspath.resolve().findAll {
+            it.name.startsWith("vosk-") || it.name.startsWith("pinyin4j-")
+        }
+    )
+    outputs.dir(inlineSrc)
+    doLast {
+        if (inlineSrc.exists()) inlineSrc.deleteDir()
+        inlineSrc.mkdirs()
+        configurations.compileClasspath.resolve().each { dep ->
+            if (dep.name.startsWith("vosk-") || dep.name.startsWith("pinyin4j-")) {
+                copy {
+                    from zipTree(dep)
+                    into inlineSrc
+                }
+                logger.lifecycle("[VoiceBlock] Inlined ${dep.name} into main jar")
+            }
+        }
+    }
+}
+
+// 让 jar 任务把展平后的 类 / 原生库打包进主 jar
+tasks.named("jar") {
+    dependsOn "inlineDeps"
+    from file("${buildDir}/inlined-deps")
+}
+
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
 
 minecraft {
     mappings channel: 'official', version: '1.20.1'
     runs {
         client {
-            workingDirectory project.file('run')
+            // 与 server 分开工作目录：共用 run/ 时两端会抢同一个 world/options，
+            // 联机调试必然登录超时（客户端先占住 world 锁）。
+            workingDirectory project.file('run-client')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            mods {
+                voiceblock { source sourceSets.main }
+            }
+        }
+        // v2.0.8 服务端支持：视障玩家整合包需要服务端装本模组，
+        // 收到 VoiceActionPacket 后由 SourceManager.takeAny 在服务端执行取物。
+        server {
+            workingDirectory project.file('run-server')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            args '--nogui'
             mods {
                 voiceblock { source sourceSets.main }
             }
@@ -37,6 +85,17 @@ minecraft {
 }
 
 tasks.named('jarJar') { enabled = true }
+
+// 共用的 ../common/resources/pack.mcmeta 是 1.21 的 pack_format(34)，1.20.1 需要 15。
+// 不改动 common 源文件（NeoForge/Fabric 模块共用），只在资源处理产物里就地改写。
+processResources {
+    doLast {
+        def meta = new File(sourceSets.main.output.resourcesDir, "pack.mcmeta")
+        if (meta.exists()) {
+            meta.text = meta.text.replace('"pack_format": 34', '"pack_format": 15')
+        }
+    }
+}
 
 sourceSets {
     main {

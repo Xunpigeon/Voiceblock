@@ -1,6 +1,7 @@
 package com.voiceblock;
 
-
+import com.voiceblock.network.VoiceNetwork;
+import com.voiceblock.source.SourceBootstrap;
 import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +13,13 @@ public class VoiceBlockMod {
 
     static {
         // 修复 Vosk(JNA) 在中文 Windows 上用 GBK 解码 UTF-8 字节导致中文乱码
-        // 必须在 Vosk 原生库加载之前设置
         System.setProperty("jna.encoding", "UTF-8");
     }
 
     public VoiceBlockMod() {
-        LOGGER.info("VoiceBlock mod initializing...");
-        // KeyBindings 与 ClientEvents 均通过 @EventBusSubscriber 自动注册
+        // 网络通道必须在 mod 构造期（网络注册表上锁前）注册一次；两端都要注册
+        VoiceNetwork.register();
+        SourceBootstrap.registerAll();
+        VoiceBlockMod.LOGGER.info("VoiceBlock mod initialized (forge 1.20.1, v2.0.8)");
     }
 }

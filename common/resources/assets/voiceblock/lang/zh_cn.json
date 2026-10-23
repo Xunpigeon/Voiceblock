@@ -1,4 +1,5 @@
 {
   "key.categories.voiceblock": "语音方块",
-  "key.voiceblock.use": "语音获取方块"
+  "key.voiceblock.use": "语音获取方块",
+  "key.voiceblock.learn": "语音学习（记录手持物品名字）"
 }

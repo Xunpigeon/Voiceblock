@@ -1,5 +1,64 @@
 # VoiceBlock 更新日志
 
+## v2.0.9 — 2026-10-23
+
+> 说明：v2.0.0 ~ v2.0.8 的改动此前没有逐版记录，这里把最终形态与本次修复合并说明。
+
+### 修复：专用服务器上「容器取物全部失效」（严重）
+
+**现象**：单人和局域网一切正常；连专用服务器时，只有自己背包里的物品能取，
+末影箱 / 潜行盒 / 精妙背包 / AE2 / 汤姆储存 / 周围箱子全部失败，提示
+`未找到该物品（已尝试: inventory,curio(err),ae2(err),tomsstorage(err),nearbyChest(err)）`。
+
+**根因**：`common/SourceServerAccess` 的方法体里引用了 `net.minecraft.client.Minecraft`。
+专用服务器链接这个类时会去加载客户端类，被 Forge 的 `RuntimeDistCleaner` 判定为 dist 违规：
+
+```
+RuntimeException: Attempted to load class net/minecraft/client/server/IntegratedServer
+                  for invalid dist DEDICATED_SERVER
+```
+
+所有调用它的容器源因此全部抛异常；`inventory` 不调用它，所以没受影响。
+
+**修复**：把客户端查找拆到 `ClientIntegratedServerLookup`，主类改成字符串反射进入，
+字节码里不再有任何 `net.minecraft.client.*` 符号引用。四个平台共用这段代码，同时修复。
+
+### 新增：Fabric 服务端权威取物
+
+Fabric 之前是纯客户端实现（`environment: client`，服务端根本不加载模组），
+联机时只能读到客户端的"空壳"容器。现在：
+
+- `fabric.mod.json` 改为 `environment: "*"`，新增 `main` + `client` 双入口
+- 新增 C2S / S2C 网络通道（1.20.1 用旧版 `ServerPlayNetworking`，1.21 用 `CustomPayload`）
+- 客户端只发「物品 ID + 数量」，服务端执行取物后回包；服务端没装时自动降级为本地取物并提示
+
+### 新增：Fabric 学习模式
+
+此前只有 Forge / NeoForge 有学习模式。现在 Fabric 也支持：
+`key.voiceblock.learn`（鼠标侧键 4）、`/voiceblock _learn replace|alias`、
+「已有发音时二选一（覆盖 / 加为模糊名称）」的聊天按钮，行为与 Forge 一致。
+
+### 新增：`/voiceblock test <物品ID> [数量]`
+
+不经过麦克风，直接走一次完整的取物链路（与语音识别的结果路径完全相同）。
+联机排查"服务端装没装 / 通道通不通 / 哪个源报错"时一句话自证。四个平台都有。
+
+### 修复：Vosk 加载失败会导致客户端崩溃
+
+原来 Vosk 初始化写在 `ClientEvents` 的静态初始化块里，只 `catch (Exception)`；
+而原生库缺失／平台不支持时抛的是 `NoClassDefFoundError` / `UnsatisfiedLinkError`（Error），
+会让整个客户端类初始化失败、游戏崩在启动阶段。
+
+现在改为延迟初始化 + `catch (Throwable)`：最坏情况只是语音不可用，游戏仍可正常进入
+（对视障玩家尤其重要）。
+
+### 其它
+
+- `run/` 拆分为 `run-client/` 与 `run-server/`，避免开发时两端抢同一个世界导致登录超时
+- `fabric.mod.json` 版本号与 Gradle 版本号对齐（此前残留 2.0.7）
+- 新增 `docs`/交接文档中描述的完整物品源体系、学习模式、服务端通道说明
+
+
 ## v1.3.0 — 2026-10-17
 
 ### 核心改动：识别率提升 + 手动绑定 + 物品自动发现

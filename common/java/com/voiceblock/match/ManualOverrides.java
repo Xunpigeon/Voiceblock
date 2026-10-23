@@ -122,4 +122,22 @@ public class ManualOverrides {
         if (removed) save();
         return removed;
     }
+
+    /** 查找绑定到指定物品 ID 的所有规则（学习模式用）。 */
+    public List<Rule> findByTarget(String targetId) {
+        List<Rule> out = new ArrayList<>();
+        if (targetId == null) return out;
+        for (Rule r : rules) {
+            if (targetId.equals(r.targetId())) out.add(r);
+        }
+        return out;
+    }
+
+    /** 用新发音覆盖该物品的全部旧发音规则（学习模式「覆盖」）。 */
+    public void replaceForTarget(String newPinyin, String targetId, String note) {
+        if (newPinyin == null || newPinyin.isBlank() || targetId == null || targetId.isBlank()) return;
+        rules.removeIf(r -> targetId.equals(r.targetId()));
+        rules.add(new Rule(newPinyin, targetId, note));
+        save();
+    }
 }
